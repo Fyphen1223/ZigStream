@@ -41,7 +41,7 @@ pub fn build(b: *std.Build) void {
         .optimize = optimize,
         .openssl = false,
     });
-    exe.addModule("zap", zap.module("zap"));
+    exe.root_module.addImport("zap", zap.module("zap"));
     exe.linkLibrary(zap.artifact("facil.io"));
 
     // This declares intent for the executable to be installed into the
