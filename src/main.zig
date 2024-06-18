@@ -1,10 +1,12 @@
 const std = @import("std");
 const zap = @import("zap");
 const mem = std.mem;
+const print = std.debug.print;
+const http = std.net.http;
 
 fn handleRequest(r: zap.Request) void {
     if (!validateRequest(r)) {
-        r.sendBody("Unauthorized, haha u suck") catch return;
+        r.sendBody("Unauthorized") catch return;
         r.setStatus(zap.StatusCode.unauthorized);
         return;
     }
@@ -15,9 +17,8 @@ fn handleRequest(r: zap.Request) void {
             info(r);
             return;
         }
-        if (mem.eql(u8, the_path, "/")) {
-            r.setHeader("Content-Type", "text/html") catch return;
-            r.sendBody("<html><body><h1>HELLO WORLD!!!</h1></body></html>") catch return;
+        if (mem.eql(u8, the_path, "/loadTracks")) {
+            loadTracks(r);
             return;
         }
     }
@@ -31,9 +32,26 @@ fn info(r: zap.Request) void {
     r.sendBody("<html><body><h1>ZigStream v0.0.1</h1></body></html>") catch return;
 }
 
+fn loadTracks(r: zap.Request) void {
+    if (!mem.eql(u8, r.method orelse "-", "GET")) {
+        r.setStatus(zap.StatusCode.bad_request);
+        r.setHeader("Content-Type", "text/plain") catch return;
+        r.sendBody("Method not allowed") catch return;
+        return;
+    }
+    if (r.getParamSlice("identifier")) |id| {
+        std.debug.print("Identifier: {s}\n", .{id});
+        r.setHeader("Content-Type", "application/json") catch return;
+        r.sendBody(id) catch return;
+    }
+    r.setHeader("Content-Type", "application/json") catch return;
+    r.setStatus(zap.StatusCode.ok);
+    r.sendBody("{\"loadtype\": \"empty\", \"tracks\": {}}") catch return;
+}
+
 fn validateRequest(r: zap.Request) bool {
     const pass = "youshallnotpass";
-    const head = r.getHeader("Authorization");
+    const head = r.getHeader("auth");
     if (head) |auth| {
         if (std.mem.eql(u8, auth, pass)) {
             return true;
